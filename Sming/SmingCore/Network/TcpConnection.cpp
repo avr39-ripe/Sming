@@ -193,7 +193,8 @@ int TcpConnection::write(IDataSourceStream* stream, bool chunked)
 		do
 		{
 			pushCount++;
-			int read = min(NETWORK_SEND_BUFFER_SIZE, getAvailableWriteSize());
+//			int read = min(NETWORK_SEND_BUFFER_SIZE, getAvailableWriteSize());
+			int read = 256;
 			if (read > 0)
 				available = stream->readMemoryBlock(buffer, read);
 			else
@@ -211,12 +212,14 @@ int TcpConnection::write(IDataSourceStream* stream, bool chunked)
 
 				if (chunked)
 				{
-					write("\r\n", 2, TCP_WRITE_FLAG_COPY | TCP_WRITE_FLAG_MORE);
+					write("\r\n", 2, TCP_WRITE_FLAG_COPY);
 				}
+
+				tcp_output(tcp);
 
 				total += written;
 				stream->seek(max(written, 0));
-				repeat = written == available && !stream->isFinished() && pushCount < 25;
+				repeat = written == available && !stream->isFinished() && pushCount < 1;
 			}
 			else
 				repeat = false;
@@ -226,7 +229,7 @@ int TcpConnection::write(IDataSourceStream* stream, bool chunked)
 	} while (repeat && space);
 	if (chunked)
 	{
-		write("0\r\n\r\n", 5, TCP_WRITE_FLAG_COPY | TCP_WRITE_FLAG_MORE);
+		write("0\r\n\r\n", 5, TCP_WRITE_FLAG_COPY);
 	}
 	flush();
 	return total;
