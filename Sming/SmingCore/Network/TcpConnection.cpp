@@ -169,7 +169,7 @@ int TcpConnection::write(const char* data, int len, uint8_t apiflags /* = TCP_WR
    }
 }
 
-int TcpConnection::write(IDataSourceStream* stream)
+int TcpConnection::write(IDataSourceStream* stream, bool chunked)
 {
 	// Send data from DataStream
 	bool repeat;
@@ -201,7 +201,19 @@ int TcpConnection::write(IDataSourceStream* stream)
 
 			if (available > 0)
 			{
+				if (chunked)
+				{
+					char cbuf[16];
+					unsigned int len = os_sprintf(cbuf,"%X\r\n", available);
+					write(cbuf, len, TCP_WRITE_FLAG_COPY | TCP_WRITE_FLAG_MORE);
+				}
 				int written = write(buffer, available, TCP_WRITE_FLAG_COPY | TCP_WRITE_FLAG_MORE);
+
+				if (chunked)
+				{
+					write("\r\n", 2, TCP_WRITE_FLAG_COPY | TCP_WRITE_FLAG_MORE);
+				}
+
 				total += written;
 				stream->seek(max(written, 0));
 				repeat = written == available && !stream->isFinished() && pushCount < 25;
@@ -212,7 +224,10 @@ int TcpConnection::write(IDataSourceStream* stream)
 
 		space = (tcp_sndqueuelen(tcp) < TCP_SND_QUEUELEN);// && tcp_sndbuf(tcp) >= FILE_STREAM_BUFFER_SIZE;
 	} while (repeat && space);
-
+	if (chunked)
+	{
+		write("0\r\n\r\n", 5, TCP_WRITE_FLAG_COPY | TCP_WRITE_FLAG_MORE);
+	}
 	flush();
 	return total;
 }

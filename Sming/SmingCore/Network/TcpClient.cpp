@@ -172,7 +172,7 @@ void TcpClient::pushAsyncPart()
 {
 	if (stream == NULL) return;
 
-	write(stream);
+	write(stream, false);
 
 	if (stream->isFinished())
 	{

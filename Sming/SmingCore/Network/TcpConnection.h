@@ -49,7 +49,7 @@ public:
 	int writeString(const String data, uint8_t apiflags = TCP_WRITE_FLAG_COPY);
 	// return -1 on error
 	virtual int write(const char* data, int len, uint8_t apiflags = TCP_WRITE_FLAG_COPY); // flags: TCP_WRITE_FLAG_COPY, TCP_WRITE_FLAG_MORE
-	int write(IDataSourceStream* stream);
+	int write(IDataSourceStream* stream, bool chunked);
 	__forceinline uint16_t getAvailableWriteSize() { return (canSend && tcp) ? tcp_sndbuf(tcp) : 0; }
 	void flush();
 

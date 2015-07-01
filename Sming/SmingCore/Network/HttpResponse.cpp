@@ -185,6 +185,8 @@ bool HttpResponse::sendTemplate(TemplateFileStream* newTemplateInstance)
 		if (mime != NULL)
 			setContentType(mime);
 	}
+
+	setHeader("Transfer-Encoding", "chunked");
 	return true;
 }
 
@@ -223,7 +225,14 @@ bool HttpResponse::sendBody(HttpServerConnection &connection)
 	if (!headerSent) sendHeader(connection);
 	if (stream == NULL) return true;
 
-	connection.write(stream);
+	if (hasHeader("Transfer-Encoding"))
+	{
+		connection.write(stream, true);
+	}
+	else
+	{
+		connection.write(stream, false);
+	}
 
 	if (stream->isFinished())
 	{
