@@ -26,11 +26,14 @@ StationClass::~StationClass()
 	connectionTimer = NULL;
 }
 
-void StationClass::enable(bool enabled)
+void StationClass::enable(bool enabled, bool save)
 {
 	uint8 mode = wifi_get_opmode() & ~STATION_MODE;
 	if (enabled) mode |= STATION_MODE;
-	wifi_set_opmode(mode);
+	if (save)
+		wifi_set_opmode(mode);
+	else
+		wifi_set_opmode_current(mode);
 }
 
 bool StationClass::isEnabled()
@@ -46,11 +49,9 @@ bool StationClass::config(String ssid, String password, bool autoConnectOnStartu
 	if (password.length() >= sizeof(config.password)) return false;
 
 	bool enabled = isEnabled();
-	bool dhcp = isEnabledDHCP();
 	enable(true); // Power on for configuration
 
 	wifi_station_disconnect();
-	if (dhcp) enableDHCP(false);
 	bool cfgreaded = wifi_station_get_config(&config);
 	if (!cfgreaded) debugf("Can't read station configuration!");
 
@@ -66,7 +67,6 @@ bool StationClass::config(String ssid, String password, bool autoConnectOnStartu
 		interrupts();
 		debugf("Can't set station configuration!");
 		wifi_station_connect();
-		enableDHCP(dhcp);
 		enable(enabled);
 		return false;
 	}
@@ -74,12 +74,17 @@ bool StationClass::config(String ssid, String password, bool autoConnectOnStartu
 
 	interrupts();
 	wifi_station_connect();
-	enableDHCP(dhcp);
+//	enableDHCP(dhcp);
 	enable(enabled);
 
 	wifi_station_set_auto_connect(autoConnectOnStartup);
 
 	return true;
+}
+
+void StationClass::connect()
+{
+	wifi_station_connect();
 }
 
 void StationClass::disconnect()
