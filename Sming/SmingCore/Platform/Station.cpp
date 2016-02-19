@@ -52,6 +52,7 @@ bool StationClass::config(String ssid, String password, bool autoConnectOnStartu
 	enable(true); // Power on for configuration
 
 	wifi_station_disconnect();
+	if (dhcp) enableDHCP(false);
 	bool cfgreaded = wifi_station_get_config(&config);
 	if (!cfgreaded) debugf("Can't read station configuration!");
 
@@ -67,6 +68,7 @@ bool StationClass::config(String ssid, String password, bool autoConnectOnStartu
 		interrupts();
 		debugf("Can't set station configuration!");
 		wifi_station_connect();
+		enableDHCP(dhcp);
 		enable(enabled);
 		return false;
 	}
@@ -74,7 +76,7 @@ bool StationClass::config(String ssid, String password, bool autoConnectOnStartu
 
 	interrupts();
 	wifi_station_connect();
-//	enableDHCP(dhcp);
+	enableDHCP(dhcp);
 	enable(enabled);
 
 	wifi_station_set_auto_connect(autoConnectOnStartup);
