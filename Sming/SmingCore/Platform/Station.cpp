@@ -49,6 +49,7 @@ bool StationClass::config(String ssid, String password, bool autoConnectOnStartu
 	if (password.length() >= sizeof(config.password)) return false;
 
 	bool enabled = isEnabled();
+	bool dhcp = isEnabledDHCP();
 	enable(true); // Power on for configuration
 
 	wifi_station_disconnect();
