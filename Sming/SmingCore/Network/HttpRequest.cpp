@@ -107,8 +107,12 @@ HttpParseResult HttpRequest::parseHeader(HttpServer *server, pbuf* buf)
 		int urlParamsStart = tmpbuf.indexOf("?", urlStart);
 		if (urlParamsStart != -1 && urlParamsStart < urlEnd)
 		{
+			debugf("========");
+			debugf("parsing params");
 			path = tmpbuf.substring(urlStart, urlParamsStart);
 			if (requestGetParameters == NULL) requestGetParameters = new HashMap<String, String>();
+			debugf("%s", tmpbuf.substring(urlParamsStart + 1, urlEnd).c_str());
+			debugf("========");
 			extractParsingItemsList(tmpbuf, urlParamsStart + 1, urlEnd, '&', ' ', requestGetParameters);
 		}
 		else
@@ -186,7 +190,7 @@ HttpParseResult HttpRequest::parsePostData(HttpServer *server, pbuf* buf)
 		tmpbuf = tmpbuf.substring(start, tmpbuf.length());
 	}
 
-	tmpbuf = extractParsingItemsList(tmpbuf, start, tmpbuf.length(), '&', ' ', requestPostParameters);
+	tmpbuf = extractParsingItemsList(tmpbuf, 0, tmpbuf.length(), '&', ' ', requestPostParameters);
 	postDataProcessed += buf->tot_len - start ;
 
 	if (postDataProcessed == getContentLength())
@@ -200,18 +204,23 @@ String HttpRequest::extractParsingItemsList(String& buf, int startPos, int endPo
 													HashMap<String, String>* resultItems)
 {
 
+	debugf("startpos %i endpos %i", startPos, endPos);
 	int delimItem, nextItem, startItem = startPos;
 	do
 	{
-		//debugf("item %i  - delim %i - next %i", startItem, delimItem, nextItem);
 		delimItem = buf.indexOf("=", startItem);
 		nextItem = buf.indexOf(delimChar, startItem);
+		debugf("item %i  - delim %i - next %i", startItem, delimItem, nextItem);
 		if (nextItem == -1) nextItem = buf.indexOf(endChar, delimItem+1);
+		debugf("1");
 		if (nextItem == -1) nextItem = endPos;
-		if (nextItem > endPos || delimItem == -1) nextItem = endPos; break;
-
+		debugf("2");
+		if (nextItem > endPos || delimItem == -1) nextItem = endPos;
+		if (delimItem == -1) break;
+		debugf("3");
 		String ItemName = buf.substring(startItem, delimItem);
 		String ItemValue = buf.substring(delimItem+1, nextItem);
+		debugf("itemname %s, itemvalue %s", ItemName.c_str(), ItemValue.c_str());
 		char* nam = uri_unescape(NULL, 0, ItemName.c_str(), -1);
 		ItemName = nam;
 		free(nam);
