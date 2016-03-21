@@ -8,6 +8,27 @@ unsigned long counter = 0;
 void STADisconnect(String ssid, uint8_t ssid_len, uint8_t bssid[6], uint8_t reason);
 void STAGotIP(IPAddress ip, IPAddress mask, IPAddress gateway);
 
+void initialWifiConfig()
+{
+	Serial.println(WifiAccessPoint.getSSID());
+	if(WifiAccessPoint.getSSID() != "WebApp")
+	{
+		WifiAccessPoint.config("WebApp", "20040229", AUTH_WPA2_PSK);
+		WifiAccessPoint.enable(true, true);
+	}
+	else
+		Serial.printf("AccessPoint already configured.\n");
+
+	if (WifiStation.getSSID().length() == 0)
+	{
+		WifiStation.config(WIFI_SSID, WIFI_PWD);
+		WifiStation.enable(true, true);
+		WifiAccessPoint.enable(false, true);
+	}
+	else
+		Serial.printf("Station already configured.\n");
+}
+
 void init()
 {
 	spiffs_mount(); // Mount file system, in order to work with files
@@ -19,7 +40,8 @@ void init()
 	system_update_cpu_freq(SYS_CPU_160MHZ);
 	wifi_set_sleep_type(NONE_SLEEP_T);
 
-	ActiveConfig = loadConfig();
+	initialWifiConfig();
+//	ActiveConfig = loadConfig();
 
 	// Attach Wifi events handlers
 	WifiEvents.onStationDisconnect(STADisconnect);
