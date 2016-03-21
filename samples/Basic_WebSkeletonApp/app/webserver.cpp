@@ -15,8 +15,8 @@ void onConfiguration(HttpRequest &request, HttpResponse &response)
 
 	if (request.getRequestMethod() == RequestMethod::POST)
 	{
-		debugf("Update config");
-		// Update config
+		debugf("Update configuration");
+
 		if (request.getBody() == NULL)
 		{
 			debugf("NULL bodyBuf");
@@ -24,40 +24,40 @@ void onConfiguration(HttpRequest &request, HttpResponse &response)
 		}
 		else
 		{
-			StaticJsonBuffer<ConfigJsonBufferSize> jsonBuffer;
+			Serial.println(request.getBody());
+			DynamicJsonBuffer jsonBuffer;
 			JsonObject& root = jsonBuffer.parseObject(request.getBody());
 			root.prettyPrintTo(Serial); //Uncomment it for debuging
 
-			if (root["StaSSID"].success()) // Settings
+			String StaSSID = root["StaSSID"].success() ? String((const char *)root["StaSSID"]) : "";
+			String StaPassword = root["StaPassword"].success() ? String((const char *)root["StaPassword"]) : "";
+			uint8_t StaEnable = root["StaEnable"].success() ? root["StaEnable"] : 255;
+
+			if (StaEnable) // Settings
 			{
-				uint8_t PrevStaEnable = ActiveConfig.StaEnable;
-
-				ActiveConfig.StaSSID = String((const char *)root["StaSSID"]);
-				ActiveConfig.StaPassword = String((const char *)root["StaPassword"]);
-				ActiveConfig.StaEnable = root["StaEnable"];
-
-				if (PrevStaEnable && ActiveConfig.StaEnable)
+				if (WifiStation.isEnabled())
 				{
-					WifiStation.enable(true);
 					WifiAccessPoint.enable(false);
-					WifiStation.config(ActiveConfig.StaSSID, ActiveConfig.StaPassword);
-				}
-				else if (ActiveConfig.StaEnable)
-				{
-					WifiStation.enable(true, true);
-					WifiAccessPoint.enable(false, true);
-					WifiStation.config(ActiveConfig.StaSSID, ActiveConfig.StaPassword);
 				}
 				else
 				{
-					WifiStation.enable(false, true);
-					WifiAccessPoint.enable(true, true);
-					WifiAccessPoint.config("TyTherm", "ENTERYOURPASSWD", AUTH_WPA2_PSK);
+					WifiStation.enable(true, true);
+					WifiAccessPoint.enable(false, true);
+				}
+				if (WifiStation.getSSID() != StaSSID || (WifiStation.getPassword() != StaPassword && StaPassword.length() >= 8))
+				{
+					WifiStation.config(StaSSID, StaPassword);
 				}
 			}
+			else
+			{
+					WifiStation.enable(false, true);
+					WifiAccessPoint.enable(true, true);
+					WifiAccessPoint.config("WebApp", "ENTERYOURPASSWD", AUTH_WPA2_PSK);
+			}
 		}
-		saveConfig(ActiveConfig);
 	}
+//		saveConfig(ActiveConfig);
 	else
 	{
 		response.setCache(86400, true); // It's important to use cache for better performance.
@@ -70,9 +70,9 @@ void onConfiguration_json(HttpRequest &request, HttpResponse &response)
 	JsonObjectStream* stream = new JsonObjectStream();
 	JsonObject& json = stream->getRoot();
 
-	json["StaSSID"] = ActiveConfig.StaSSID;
-	json["StaPassword"] = ActiveConfig.StaPassword;
-	json["StaEnable"] = ActiveConfig.StaEnable;
+	json["StaSSID"] = WifiStation.getSSID();
+//	json["StaPassword"] = ActiveConfig.StaPassword;
+	json["StaEnable"] = WifiStation.isEnabled() ? 1 : 0;
 
 	response.sendJsonObject(stream);
 }
