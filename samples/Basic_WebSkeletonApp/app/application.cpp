@@ -1,17 +1,19 @@
 #include <application.h>
 #include <user_config.h>
 
+ApplicationClass App;
+
 void init()
 {
-	ApplicationClass App;
+	App.init();
 	App.start();
 }
 
-ApplicationClass::ApplicationClass()
+void ApplicationClass::init()
 {
 	spiffs_mount(); // Mount file system, in order to work with files
 	Serial.begin(SERIAL_BAUD_RATE); // 115200 by default
-	Serial.systemDebugOutput(true);
+	Serial.systemDebugOutput(false);
 	Serial.commandProcessing(false);
 
 	_initialWifiConfig();
@@ -22,13 +24,13 @@ ApplicationClass::ApplicationClass()
 	WifiEvents.onStationDisconnect(onStationDisconnectDelegate(&ApplicationClass::_STADisconnect, this));
 	WifiEvents.onStationGotIP(onStationGotIPDelegate(&ApplicationClass::_STAGotIP, this));
 
-//	_startWebServer();
+	startWebServer();
 }
 
 void ApplicationClass::start()
 {
-	_startWebServer();
 	_loopTimer.initializeMs(Config.loopInterval, TimerDelegate(&ApplicationClass::_loop, this)).start(true);
+	_loop();
 }
 
 void ApplicationClass::stop()
@@ -84,7 +86,6 @@ void ApplicationClass::_STADisconnect(String ssid, uint8_t ssid_len, uint8_t bss
 		WifiAccessPoint.enable(true);
 		WifiStation.connect();
 	}
-	_startWebServer();
 }
 
 void ApplicationClass::_STAGotIP(IPAddress ip, IPAddress mask, IPAddress gateway)
@@ -99,21 +100,18 @@ void ApplicationClass::_STAGotIP(IPAddress ip, IPAddress mask, IPAddress gateway
 		WifiAccessPoint.enable(false);
 	}
 	// Add commands to be executed after successfully connecting to AP and got IP from it
-	_startWebServer();
 }
 
-void ApplicationClass::_startWebServer()
+void ApplicationClass::startWebServer()
 {
 	if (_webServerStarted) return;
 
-	Serial.println("Try to start WEBSERVER!");
-
-	_webServer.listen(80);
-	_webServer.addPath("/",HttpPathDelegate(&ApplicationClass::_httpOnIndex,this));
-	_webServer.addPath("/config",HttpPathDelegate(&ApplicationClass::_httpOnConfiguration,this));
-	_webServer.addPath("/config.json",HttpPathDelegate(&ApplicationClass::_httpOnConfigurationJson,this));
-	_webServer.addPath("/state.json",HttpPathDelegate(&ApplicationClass::_httpOnStateJson,this));
-	_webServer.setDefaultHandler(HttpPathDelegate(&ApplicationClass::_httpOnFile,this));
+	webServer.listen(80);
+	webServer.addPath("/",HttpPathDelegate(&ApplicationClass::_httpOnIndex,this));
+	webServer.addPath("/config",HttpPathDelegate(&ApplicationClass::_httpOnConfiguration,this));
+	webServer.addPath("/config.json",HttpPathDelegate(&ApplicationClass::_httpOnConfigurationJson,this));
+	webServer.addPath("/state.json",HttpPathDelegate(&ApplicationClass::_httpOnStateJson,this));
+	webServer.setDefaultHandler(HttpPathDelegate(&ApplicationClass::_httpOnFile,this));
 	_webServerStarted = true;
 
 	if (WifiStation.isEnabled())
@@ -174,7 +172,6 @@ void ApplicationClass::_httpOnConfiguration(HttpRequest &request, HttpResponse &
 
 			//Mandatory part to setup WIFI
 			_handleWifiConfig(root);
-
 
 			if (root["loopInterval"].success()) // There is loopInterval parameter in json
 			{
