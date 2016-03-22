@@ -34,10 +34,12 @@ private:
 class ApplicationClass
 {
 public:
-	ApplicationClass();
-	void start();
-	void stop();
-	ApplicationConfig Config;
+	void init(); // Application initialization
+	void start(); // Application main-loop start/restart
+	void stop(); // Application main-loop stop
+	ApplicationConfig Config; // Instance of Configuration for application
+	HttpServer webServer; // instance of web server for application
+	void startWebServer(); // Start Application WebServer
 protected:
 	void _loop(); // Application main loop function goes here
 	void _initialWifiConfig(); // Doing initial configuration of both Station and AccessPoint
@@ -45,7 +47,6 @@ protected:
 	void _STAGotIP(IPAddress ip, IPAddress mask, IPAddress gateway); // Runs when Station got ip from access-point
 	void _loadConfig();
 	void _saveConfig();
-	void _startWebServer(); // Start Application WebServer
 	void _httpOnFile(HttpRequest &request, HttpResponse &response);
 	void _httpOnIndex(HttpRequest &request, HttpResponse &response);
 	void _httpOnStateJson(HttpRequest &request, HttpResponse &response);
@@ -56,6 +57,6 @@ protected:
 //	uint16_t _loopInterval;
 	Timer _loopTimer; // Timer for serving loop
 	uint8_t _webServerStarted = false;
-	HttpServer _webServer;
+
 };
 #endif /* INCLUDE_HEATCONTROL_H_ */
