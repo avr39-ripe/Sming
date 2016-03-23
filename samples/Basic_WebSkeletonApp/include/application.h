@@ -46,8 +46,6 @@ protected:
 	void _STADisconnect(String ssid, uint8_t ssid_len, uint8_t bssid[6], uint8_t reason); // Runs when Station disconnects
 	void _STAAuthModeChange(uint8_t oldMode, uint8_t newMode); // Runs when Station auth mode changes
 	void _STAGotIP(IPAddress ip, IPAddress mask, IPAddress gateway); // Runs when Station got ip from access-point
-	void _loadConfig();
-	void _saveConfig();
 	void _httpOnFile(HttpRequest &request, HttpResponse &response);
 	void _httpOnIndex(HttpRequest &request, HttpResponse &response);
 	void _httpOnStateJson(HttpRequest &request, HttpResponse &response);
