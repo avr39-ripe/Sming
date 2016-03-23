@@ -14,7 +14,7 @@ void ApplicationClass::init()
 	spiffs_mount(); // Mount file system, in order to work with files
 	Serial.begin(SERIAL_BAUD_RATE); // 115200 by default
 	Serial.systemDebugOutput(false);
-	Serial.commandProcessing(false);
+	Serial.commandProcessing(true);
 
 	_initialWifiConfig();
 
@@ -22,6 +22,7 @@ void ApplicationClass::init()
 
 	// Attach Wifi events handlers
 	WifiEvents.onStationDisconnect(onStationDisconnectDelegate(&ApplicationClass::_STADisconnect, this));
+	WifiEvents.onStationAuthModeChange(onStationAuthModeChangeDelegate(&ApplicationClass::_STAAuthModeChange, this));
 	WifiEvents.onStationGotIP(onStationGotIPDelegate(&ApplicationClass::_STAGotIP, this));
 
 	startWebServer();
@@ -78,6 +79,19 @@ void ApplicationClass::_initialWifiConfig()
 void ApplicationClass::_STADisconnect(String ssid, uint8_t ssid_len, uint8_t bssid[6], uint8_t reason)
 {
 	debugf("DISCONNECT - SSID: %s, REASON: %d\n", ssid.c_str(), reason);
+
+	if (!WifiAccessPoint.isEnabled())
+	{
+		debugf("Starting OWN AP");
+		WifiStation.disconnect();
+		WifiAccessPoint.enable(true);
+		WifiStation.connect();
+	}
+}
+
+void ApplicationClass::_STAAuthModeChange(uint8_t oldMode, uint8_t newMode)
+{
+	debugf("AUTH MODE CHANGE - OLD MODE: %d, NEW MODE: %d\n", oldMode, newMode);
 
 	if (!WifiAccessPoint.isEnabled())
 	{
@@ -165,10 +179,11 @@ void ApplicationClass::_httpOnConfiguration(HttpRequest &request, HttpResponse &
 		}
 		else // Request Body Not Empty
 		{
-			Serial.println(request.getBody());
+			debugf(request.getBody());
 			DynamicJsonBuffer jsonBuffer;
 			JsonObject& root = jsonBuffer.parseObject(request.getBody());
-			root.prettyPrintTo(Serial); //Uncomment it for debuging
+			//Uncomment next line for extra debuginfo
+//			root.prettyPrintTo(Serial);
 
 			//Mandatory part to setup WIFI
 			_handleWifiConfig(root);
@@ -210,6 +225,7 @@ void ApplicationClass::_handleWifiConfig(JsonObject& root)
 			if (WifiStation.getSSID() != StaSSID || (WifiStation.getPassword() != StaPassword && StaPassword.length() >= 8))
 			{
 				WifiStation.config(StaSSID, StaPassword);
+				WifiStation.connect();
 			}
 		}
 		else
