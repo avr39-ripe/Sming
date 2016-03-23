@@ -179,14 +179,17 @@ void ApplicationClass::_httpOnConfiguration(HttpRequest &request, HttpResponse &
 		}
 		else // Request Body Not Empty
 		{
-			debugf(request.getBody());
+//Uncomment next line for extra debuginfo
+//			Serial.printf(request.getBody());
 			DynamicJsonBuffer jsonBuffer;
 			JsonObject& root = jsonBuffer.parseObject(request.getBody());
-			//Uncomment next line for extra debuginfo
+//Uncomment next line for extra debuginfo
 //			root.prettyPrintTo(Serial);
 
 			//Mandatory part to setup WIFI
 			_handleWifiConfig(root);
+
+			//Application config processing
 
 			if (root["loopInterval"].success()) // There is loopInterval parameter in json
 			{
