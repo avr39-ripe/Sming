@@ -13,8 +13,8 @@
 #include <SmingCore/SmingCore.h>
 #include <SmingCore/Network/WebsocketClient.h>
 #ifndef WIFI_SSID
-	#define WIFI_SSID "PleaseEnterSSID" // Put you SSID and Password here
-	#define WIFI_PWD "PleaseEnterPass"
+	#define WIFI_SSID "infjust" // Put you SSID and Password here
+	#define WIFI_PWD "jujust12"
 #endif
 
 
@@ -24,7 +24,8 @@ Timer restartTimer;
 
 int msg_cnt =0;
 
-String ws_Url =  "ws://echo.websocket.org"; //"ws://192.168.1.2:8080/";
+//String ws_Url =  "ws://echo.websocket.org"; //"ws://192.168.1.2:8080/";
+String ws_Url =  "ws://10.2.113.116"; //"ws://192.168.1.2:8080/";
 void wsDisconnected(bool success);
 void wsMessageSent();
 void wsConnected(wsMode Mode)
@@ -43,6 +44,27 @@ void wsConnected(wsMode Mode)
 void wsMessageReceived(String message)
 {
     Serial.printf("WebSocket message received:\r\n%s\r\n", message.c_str());
+}
+
+void wsBinReceived(uint8_t* data, size_t size)
+{
+	Serial.printf("WebSocket BINARY received\n");
+	for (uint8_t i = 0; i< size; i++)
+	{
+		Serial.printf("wsBin[%u] = %x\n", i, data[i]);
+	}
+
+	Serial.printf("wsCmd: %x wsSysId: %x wsSubCmd: %x\n",data[0], data[1], data[2]);
+
+	uint32_t counter = 0;
+	os_memcpy(&counter, (&data[3]), 4);
+	uint32_t timestamp = 0;
+	os_memcpy(&timestamp, (&data[7]), 4);
+
+	SystemClock.setTime(timestamp, eTZ_UTC);
+	DateTime nowTime = SystemClock.now();
+
+	Serial.printf("Counter: %u Time: %s\n", counter, nowTime.toShortTimeString(true).c_str());
 }
 
 void restart()
@@ -83,10 +105,12 @@ void wsMessageSent()
 		}
     	else
     	{
-			String message = "Hello " + String(msg_cnt++);
-			Serial.print("Message to WS Server : ");
-			Serial.println(message);
-			wsClient.sendMessage(message);
+//			String message = "Hello " + String(msg_cnt++);
+//			Serial.print("Message to WS Server : ");
+//			Serial.println(message);
+    		uint8_t buf[] = {0x01, 0x01, 0x02};
+//			wsClient.sendMessage(message);
+    		wsClient.sendBinary(&buf[0], 3);
     	}
 
    }
@@ -100,6 +124,7 @@ void connectOk()
     Serial.print("Connecting to Websocket Server");
     Serial.println(ws_Url);
     wsClient.setOnReceiveCallback(wsMessageReceived);
+    wsClient.setWebSocketBinaryHandler(wsBinReceived);
     wsClient.setOnDisconnectedCallback(wsDisconnected);
     wsClient.setOnConnectedCallback(wsConnected);
     wsClient.connect(ws_Url);

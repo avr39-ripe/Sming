@@ -28,3 +28,4 @@ MODULES = app
 
 # Com port speed
 # COM_SPEED	= 115200
+DISABLE_SPIFFS = 1
