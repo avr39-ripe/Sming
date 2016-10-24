@@ -21,6 +21,8 @@
 #include "../../Wiring/WString.h"
 #include "../Digital.h"
 
+#define WEBSOCKETS_USE_BIG_MEM
+#define WEBSOCKETS_MAX_HEADER_SIZE 14
 enum wsMode
 {
 	ws_Disconnected = 0, ws_Connecting, ws_Connected
@@ -51,6 +53,7 @@ public:
 	void sendBinary(uint8_t* msg, uint16_t length);
 	wsMode getWSMode();
 protected:
+	uint8_t sendFrame(uint8_t opcode, uint8_t * payload, size_t length, uint8_t mask, uint8_t fin,  uint8_t headerToPayload);
 	virtual void onFinished(TcpClientState finishState);
 	virtual err_t onConnected(err_t err);
 	virtual void onError(err_t err);
