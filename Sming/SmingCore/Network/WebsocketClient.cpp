@@ -35,6 +35,10 @@ void WebsocketClient::setOnReceiveCallback(WebSocketRxCallback _rxcallback)
     this->rxcallback = _rxcallback;
 }
 
+void WebsocketClient::setWebSocketBinaryHandler(WebSocketClientBinaryDelegate handler)
+{
+	wsBinary = handler;
+}
 /* Function Name: setOnDisconnectedCallback
  * Description: This function is used to set Disconnected callback function
  * Parameters: Callback function like  wsDisconnected(bool success)
@@ -451,11 +455,19 @@ err_t WebsocketClient::onReceive(pbuf* buf)
 						if (masked > 0)
 							rxdata[i] = rxdata[i] ^ mask[i % 4];
 					}
-					rxdata[len] = '\0';
-					// debugf("Frame Contents :");
-					//   debugf("%s",(char* )rxdata);
-					//This is UTF-8 code, but for the general ASCII table UTF8 and ASCII are the same, so it wont matter if we dont send/recieve special chars.
-					this->rxcallback((char*) rxdata); //send data to callback function;
+
+					if ( op == 0x01) //textFrame
+					{
+						rxdata[len] = '\0';
+						// debugf("Frame Contents :");
+						//   debugf("%s",(char* )rxdata);
+						//This is UTF-8 code, but for the general ASCII table UTF8 and ASCII are the same, so it wont matter if we dont send/recieve special chars.
+						this->rxcallback((char*) rxdata); //send data to callback function;
+					}
+					if ( op == 0x02) //binaryFrame
+					{
+						this->wsBinary((uint8_t*) rxdata, len);
+					}
 				} //Currently this code does not handle fragmented messenges, since a single message can be 64bit long, only streaming binary data seems likely to need fragmentation.
 
 			}

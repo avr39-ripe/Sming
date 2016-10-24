@@ -19,7 +19,7 @@
 #include "../../Services/WebHelpers/aw-sha1.h"
 #include "../../Services/WebHelpers/base64.h"
 #include "../../Wiring/WString.h"
-#include "../PWM.h"
+#include "../Digital.h"
 
 enum wsMode
 {
@@ -27,6 +27,7 @@ enum wsMode
 };
 
 typedef Delegate<void(String message)> WebSocketRxCallback;
+typedef Delegate<void(uint8_t* data, size_t size)> WebSocketClientBinaryDelegate;
 typedef Delegate<void(bool  successful)> WebSocketCompleteCallback;
 typedef Delegate<void(wsMode  Mode)> WebSocketConnectedCallback;
 class WebsocketClient;
@@ -40,6 +41,7 @@ public:
 	void setOnReceiveCallback(WebSocketRxCallback _rxcallback);
 	void setOnDisconnectedCallback(WebSocketCompleteCallback _completecallback);
 	void setOnConnectedCallback(WebSocketConnectedCallback _connectedcallback);
+	void setWebSocketBinaryHandler(WebSocketClientBinaryDelegate handler);
 	bool connect(String url);//, WebSocketRxCallback _rxcallback = NULL, WebSocketCompleteCallback _completecallback = NULL);
 	void sendPing();
 	void sendPong();
@@ -60,6 +62,7 @@ private:
 	String _url;
 	wsMode Mode;
 	WebSocketRxCallback rxcallback;
+	WebSocketClientBinaryDelegate wsBinary;
 	WebSocketCompleteCallback completecallback;
 	WebSocketConnectedCallback connectedcallback;
 	bool connected;
