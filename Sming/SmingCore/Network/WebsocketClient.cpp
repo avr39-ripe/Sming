@@ -286,7 +286,7 @@ uint8_t WebsocketClient::sendFrame(uint8_t opcode, uint8_t * payload, size_t len
 	    // only for ESP since AVR has less HEAP
 	    // try to send data in one TCP package (only if some free Heap is there)
 	    if(!headerToPayload && ((length > 0) && (length < 1400)) && (system_get_free_heap_size() > 6000)) {
-	        uint8_t * dataPtr = (uint8_t *) os_malloc(length + WEBSOCKETS_MAX_HEADER_SIZE);
+	        uint8_t * dataPtr = new uint8_t[length + WEBSOCKETS_MAX_HEADER_SIZE];
 	        if(dataPtr) {
 	            os_memcpy((dataPtr + WEBSOCKETS_MAX_HEADER_SIZE), payload, length);
 	            headerToPayload = true;
@@ -412,7 +412,8 @@ uint8_t WebsocketClient::sendFrame(uint8_t opcode, uint8_t * payload, size_t len
 
 	#ifdef WEBSOCKETS_USE_BIG_MEM
 	    if(useInternBuffer && payloadPtr) {
-	        free(payloadPtr);
+//	    	debugf("Free wsBuffer!\n");
+	        delete[] payloadPtr;
 	    }
 	#endif
 
@@ -552,6 +553,7 @@ err_t WebsocketClient::onReceive(pbuf* buf)
 		uint16_t size = buf->tot_len;
 		char* data = new char[size + 1];
 		pbuf_copy_partial(buf, data, size, 0);
+
 		data[size] = '\0';
 
 		//  debugf("%s", data); //print received buffer
@@ -602,34 +604,29 @@ err_t WebsocketClient::onReceive(pbuf* buf)
 					// debugf("Message is %d chars long",len);
 
 					//Generally server replies are not masked, but RFC does not forbid it
-					uint8_t mask[4];
-					if (masked > 0)
+					if ( masked )
 					{
+						uint8_t mask[4];
+
 						mask[0] = data[cnt++];
 						mask[1] = data[cnt++];
 						mask[2] = data[cnt++];
 						mask[3] = data[cnt++];
-					}
 
-					uint8_t rxdata[len + 1]; //Max 16bit length message, so 65kbyte ...
-					for (uint8_t i = 0; i < len; i++)
-					{
-						rxdata[i] = data[cnt++];
-						if (masked > 0)
-							rxdata[i] = rxdata[i] ^ mask[i % 4];
+						for (uint8_t i = 0; i < len; i++)
+						{
+							data[cnt + i] = data[cnt + i] ^ mask[i % 4];
+						}
 					}
 
 					if ( op == 0x01) //textFrame
 					{
-						rxdata[len] = '\0';
-						// debugf("Frame Contents :");
-						//   debugf("%s",(char* )rxdata);
-						//This is UTF-8 code, but for the general ASCII table UTF8 and ASCII are the same, so it wont matter if we dont send/recieve special chars.
-						this->rxcallback((char*) rxdata); //send data to callback function;
+						data[len] = '\0';
+						this->rxcallback((char*) &data[cnt]); //send data to callback function;
 					}
 					if ( op == 0x02) //binaryFrame
 					{
-						this->wsBinary((uint8_t*) rxdata, len);
+						this->wsBinary((uint8_t*) &data[cnt], len);
 					}
 				} //Currently this code does not handle fragmented messenges, since a single message can be 64bit long, only streaming binary data seems likely to need fragmentation.
 
@@ -645,7 +642,7 @@ err_t WebsocketClient::onReceive(pbuf* buf)
 				debugf("Got ping ...");
 				sendPong(); //Need to send Pong in response to Ping
 			}
-			else if (op = 0x10)
+			else if (op == 0x10)
 			{
 				debugf("Got pong ...");
 				//A pong can contain app data, but shouldnt if we didnt send any...
@@ -658,6 +655,8 @@ err_t WebsocketClient::onReceive(pbuf* buf)
 			}
 			break;
 		}
+
+		delete[] data;
 		TcpClient::onReceive(buf);
 	}
 }
