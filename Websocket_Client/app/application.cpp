@@ -65,6 +65,7 @@ void wsBinReceived(uint8_t* data, size_t size)
 	DateTime nowTime = SystemClock.now();
 
 	Serial.printf("Counter: %u Time: %s\n", counter, nowTime.toShortTimeString(true).c_str());
+	Serial.printf("Free Heap: %d\n", system_get_free_heap_size());
 }
 
 void restart()
@@ -140,7 +141,7 @@ void connectFail()
 void init()
 {
     Serial.begin(115200);
-    Serial.systemDebugOutput(false);
+    Serial.systemDebugOutput(true);
     WifiAccessPoint.enable(false);
 
     WifiStation.config(WIFI_SSID, WIFI_PWD);
