@@ -504,7 +504,22 @@ void WebsocketClient::sendMessage(char* msg, uint16_t length)
  */
 void WebsocketClient::sendBinary(uint8_t* msg, uint16_t length)
 {
-	sendFrame(0x02, msg, length, true, true,  false);
+//	sendFrame(0x02, msg, length, true, true,  false);
+	WebsocketFrameClass wsFrame;
+	uint8_t result = wsFrame.encodeFrame(WSOpcode::op_binary, msg, length, true, true, false);
+
+	if (result && wsFrame._header == nullptr)
+	{
+		debugf("Sending wsFrame as a _payload");
+		send((char*) &wsFrame._payload[0], wsFrame._payloadLength, false);
+	}
+	else if (result)
+	{
+		debugf("Sending wsFrame as a _header and then _payload");
+		send((char*) &wsFrame._header[0], wsFrame._headerLength, false);
+		send((char*) &wsFrame._payload[0], wsFrame._payloadLength, false);
+
+	}
 	return;
 
 	uint8_t buffer[500];

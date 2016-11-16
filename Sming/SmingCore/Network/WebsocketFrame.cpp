@@ -33,8 +33,7 @@ uint8_t WebsocketFrameClass::encodeFrame(WSOpcode opcode, uint8_t * payload, siz
 		return false; //too big for poor esp8266
 	}
 
-	uint8_t maskKey[4] =
-	{ 0x00, 0x00, 0x00, 0x00 };
+	uint8_t maskKey[4] = { 0x00, 0x00, 0x00, 0x00 };
 
 	_payload = payload;
 	_payloadLength = length;
@@ -51,26 +50,19 @@ uint8_t WebsocketFrameClass::encodeFrame(WSOpcode opcode, uint8_t * payload, siz
 	{
 		_headerLength = 4;
 	}
-//too big for poor esp8266
-//	else
-//	{
-//		_headerLength = 10;
-//	}
 
 	if (mask)
 	{
 		_headerLength += 4;
 	}
 
-	if (!headerToPayload && ((length > 0) && (length < 1400)) && (system_get_free_heap_size() > 6000))
+	if ( !headerToPayload && ((length > 0) && (length < 1400)) && (system_get_free_heap_size() > 6000))
 	{
-//		uint8_t * dataPtr = new uint8_t[length + WSFrame::MaxHeaderLength];
 		_payloadLength = length + _headerLength;
 		uint8_t * dataPtr = new uint8_t[_payloadLength];
 		_flags |= WSFlags::payloadDeleteMemBit;
 		if (dataPtr)
 		{
-//			os_memcpy((dataPtr + WSFrame::MaxHeaderLength), payload, length);
 			os_memcpy((dataPtr + _headerLength), payload, length); //copy original data to newly created buffer with _headerLength offset
 			headerToPayload = true;
 			useInternBuffer = true;
@@ -86,13 +78,10 @@ uint8_t WebsocketFrameClass::encodeFrame(WSOpcode opcode, uint8_t * payload, siz
 	// set Header Pointer
 	if (headerToPayload)
 	{
-		// calculate offset in payload
-//		_header = (_payload + (WSFrame::MaxHeaderLength - _headerLength));
 		_header = _payload; //Header is inside _payload buffer and occupy first _headerLength bytes
 	}
 	else
 	{
-//		_header = new uint8_t[WSFrame::MaxHeaderLength];
 		_header = new uint8_t[_headerLength];
 		_flags |= WSFlags::headerDeleteMemBit;
 	}
@@ -129,29 +118,6 @@ uint8_t WebsocketFrameClass::encodeFrame(WSOpcode opcode, uint8_t * payload, siz
 		*_header = (length & 0xFF);
 		_header++;
 	}
-// Too big frame for poor esp8266 :)
-//	else
-//	{
-//		// Normally we never get here (to less memory)
-//		*_header |= 127;
-//		_header++;
-//		*_header = 0x00;
-//		_header++;
-//		*_header = 0x00;
-//		_header++;
-//		*_header = 0x00;
-//		_header++;
-//		*_header = 0x00;
-//		_header++;
-//		*_header = ((length >> 24) & 0xFF);
-//		_header++;
-//		*_header = ((length >> 16) & 0xFF);
-//		_header++;
-//		*_header = ((length >> 8) & 0xFF);
-//		_header++;
-//		*_header = (length & 0xFF);
-//		_header++;
-//	}
 
 	if (mask)
 	{
@@ -196,46 +162,9 @@ uint8_t WebsocketFrameClass::encodeFrame(WSOpcode opcode, uint8_t * payload, siz
 		}
 	}
 
-
-//	if(headerToPayload)
-//	{
-//		// header has be added to payload
-//		// payload is forced to reserved 14 Byte but we may not need all based on the length and mask settings
-//		// offset in payload is calculatetd 14 - _headerLength
-////	        if(client->tcp->write(&_payload[(WSFrame::MaxHeaderSize - _headerLength)], (length + _headerLength)) != (length + _headerLength)) {
-////	            ret = false;
-////	        }
-////		ret = send((char*) &_payload[(WSFrame::MaxHeaderLength - _headerLength)], (length + _headerLength), false);
-//
-//		_header = nullptr; //mark _header as nulptr to indicate external world that whole frame is referenced by _payload
-//		_headerLength = 0;
-//	}
-//	else
-//	{
-//		// send header
-////	        if(client->tcp->write(&buffer[0], _headerLength) != _headerLength) {
-////	            ret = false;
-////	        }
-////		ret = send((char*) _header, _headerLength, false);
-//
-//		if(_payload && length > 0) {
-//			// send payload
-////	            if(client->tcp->write(&_payload[0], length) != length) {
-////	                ret = false;
-////	            }
-//			ret = send((char*) &_payload[0], length, false);
-//		}
-//	}
-
-
-//	if(useInternBuffer && _payload) {
-////	    	debugf("Free wsBuffer!\n");
-//		delete[] _payload;
-//	}
-
 	if ( headerToPayload )
 	{
-		_header = nullptr; //mark _header as nulptr to indicate external world that whole frame is referenced by _payload
+		_header = nullptr; //mark _header as nullptr to indicate external world that whole frame is referenced by _payload
 		_headerLength = 0;
 	}
 

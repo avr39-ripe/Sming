@@ -20,6 +20,7 @@
 #include "../../Services/WebHelpers/base64.h"
 #include "../../Wiring/WString.h"
 #include "../Digital.h"
+#include <Network/WebsocketFrame.h>
 
 #define WEBSOCKETS_USE_BIG_MEM
 #define WEBSOCKETS_MAX_HEADER_SIZE 14
