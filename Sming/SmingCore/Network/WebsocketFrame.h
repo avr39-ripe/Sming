@@ -45,7 +45,7 @@ class WebsocketFrameClass
 public:
 	WebsocketFrameClass();
 	virtual ~WebsocketFrameClass();
-	uint8_t encodeFrame(WSOpcode opcode, uint8_t * payload, size_t length, uint8_t mask, uint8_t fin,  uint8_t headerToPayload);
+	uint8_t encodeFrame(WSOpcode opcode, uint8_t * payload, size_t length, uint8_t mask, uint8_t fin,  uint8_t headerToPayload = true);
 	uint8_t decodeFrame(uint8_t * buffer, size_t length); //return nonzero if multiframe buffer given
 protected:
 	uint8_t* _payload = nullptr;

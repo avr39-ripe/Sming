@@ -54,7 +54,6 @@ public:
 	void sendBinary(uint8_t* msg, uint16_t length);
 	wsMode getWSMode();
 protected:
-	uint8_t sendFrame(uint8_t opcode, uint8_t * payload, size_t length, uint8_t mask, uint8_t fin,  uint8_t headerToPayload);
 	virtual void onFinished(TcpClientState finishState);
 	virtual err_t onConnected(err_t err);
 	virtual void onError(err_t err);
