@@ -511,12 +511,26 @@ void WebsocketClient::sendBinary(uint8_t* msg, uint16_t length)
 	if (result && wsFrame._header == nullptr)
 	{
 		debugf("Sending wsFrame as a _payload");
+		for (uint8_t x = 0; x < wsFrame._payloadLength; x++)
+		{
+			debugf("_payload[%d] = %x\n", x, wsFrame._payload[x]);
+		}
+
 		send((char*) &wsFrame._payload[0], wsFrame._payloadLength, false);
 	}
 	else if (result)
 	{
 		debugf("Sending wsFrame as a _header and then _payload");
+	    for (uint8_t x = 0; x < wsFrame._headerLength; x++)
+	    {
+	    	debugf("_header[%d] = %x\n", x, wsFrame._header[x]);
+	    }
 		send((char*) &wsFrame._header[0], wsFrame._headerLength, false);
+
+	    for (uint8_t x = 0; x < wsFrame._payloadLength; x++)
+	    {
+	    	debugf("_payload[%d] = %x\n", x, wsFrame._payload[x]);
+	    }
 		send((char*) &wsFrame._payload[0], wsFrame._payloadLength, false);
 
 	}
