@@ -14,15 +14,18 @@ namespace WSFrame
 	static uint8_t MaxHeaderLength = 14;
 }
 
-enum class WSOpcode : uint8_t
+enum class WSFrameType : uint8_t
 {
-	op_continuation = 0x00,	///< %x0 denotes a continuation frame
-	op_text = 0x01,			///< %x1 denotes a text frame
-	op_binary = 0x02,		///< %x2 denotes a binary frame
-														///< %x3-7 are reserved for further non-control frames
-	op_close = 0x08,			///< %x8 denotes a connection close
-	op_ping = 0x09,			///< %x9 denotes a ping
-	op_pong = 0x0A			///< %xA denotes a pong
+	continuation = 0x00, // continuation frame, UNSUPPORTED BY NOW!
+	text = 0x01,		// text frame
+	binary = 0x02,		// binary frame
+														// %x3-7 are reserved for further non-control frames
+	close = 0x08,		// connection close frame
+	ping = 0x09,		// ping frame
+	pong = 0x0A,		// pong frame
+	empty = 0xF0,		// Empty frame, length == 0
+	error = 0xF1,		// Error while farsing frame
+	incomplete = 0xF2	// Incomplete, inconsistent frame
 	///< %xB-F are reserved for further control frame
 };
 
@@ -45,14 +48,16 @@ class WebsocketFrameClass
 public:
 	WebsocketFrameClass();
 	virtual ~WebsocketFrameClass();
-	uint8_t encodeFrame(WSOpcode opcode, uint8_t * payload, size_t length, uint8_t mask, uint8_t fin,  uint8_t headerToPayload = true);
-	uint8_t decodeFrame(uint8_t * buffer, size_t length); //return nonzero if multiframe buffer given
+	uint8_t encodeFrame(WSFrameType frameType, uint8_t * payload, size_t length, uint8_t mask, uint8_t fin,  uint8_t headerToPayload = true);
+	uint8_t decodeFrame(uint8_t * buf, size_t length);
 protected:
 	uint8_t* _payload = nullptr;
 	size_t _payloadLength = 0;
 	uint8_t* _header = nullptr;
 	size_t _headerLength = 0;
-	WSOpcode _opcode = WSOpcode::op_text;
+	WSFrameType _frameType = WSFrameType::empty;
+	uint8_t _mask = 0;
+	uint8_t _getFrameSizes(uint8_t* buf, size_t length);
 private:
 	uint8_t _flags = 0; //Store flags for further freeing memory
 	size_t _nextReadOffset = 0; //Store offset in multiframe tcp buffer for next decodeFrame

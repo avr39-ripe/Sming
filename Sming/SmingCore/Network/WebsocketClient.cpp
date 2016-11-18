@@ -344,31 +344,31 @@ void WebsocketClient::sendMessage(char* msg, uint16_t length)
 void WebsocketClient::sendBinary(uint8_t* msg, uint16_t length)
 {
 	WebsocketFrameClass wsFrame;
-	uint8_t result = wsFrame.encodeFrame(WSOpcode::op_binary, msg, length, true, true, true);
+	uint8_t result = wsFrame.encodeFrame(WSFrameType::binary, msg, length, true, true, true);
 
 	if (result && wsFrame._header == nullptr)
 	{
 		debugf("Sending wsFrame as a _payload");
-		for (uint8_t x = 0; x < wsFrame._payloadLength; x++)
-		{
-			debugf("_payload[%d] = %x\n", x, wsFrame._payload[x]);
-		}
+//		for (uint8_t x = 0; x < wsFrame._payloadLength; x++)
+//		{
+//			debugf("_payload[%d] = %x\n", x, wsFrame._payload[x]);
+//		}
 
 		send((char*) &wsFrame._payload[0], wsFrame._payloadLength, false);
 	}
 	else if (result)
 	{
 		debugf("Sending wsFrame as a _header and then _payload");
-	    for (uint8_t x = 0; x < wsFrame._headerLength; x++)
-	    {
-	    	debugf("_header[%d] = %x\n", x, wsFrame._header[x]);
-	    }
+//	    for (uint8_t x = 0; x < wsFrame._headerLength; x++)
+//	    {
+//	    	debugf("_header[%d] = %x\n", x, wsFrame._header[x]);
+//	    }
 		send((char*) &wsFrame._header[0], wsFrame._headerLength, false);
 
-	    for (uint8_t x = 0; x < wsFrame._payloadLength; x++)
-	    {
-	    	debugf("_payload[%d] = %x\n", x, wsFrame._payload[x]);
-	    }
+//	    for (uint8_t x = 0; x < wsFrame._payloadLength; x++)
+//	    {
+//	    	debugf("_payload[%d] = %x\n", x, wsFrame._payload[x]);
+//	    }
 		send((char*) &wsFrame._payload[0], wsFrame._payloadLength, false);
 
 	}
@@ -418,16 +418,22 @@ err_t WebsocketClient::onReceive(pbuf* buf)
 	else
 	{
 		uint16_t size = buf->tot_len;
-		char* data = new char[size + 1];
+//		char* data = new char[size + 1];
+		uint8_t* data = new uint8_t[size];
+
 		pbuf_copy_partial(buf, data, size, 0);
 
-		data[size] = '\0';
+//		data[size] = '\0';
+	    for (uint8_t x = 0; x < size; x++)
+	    {
+	    	debugf("ws recv data[%d] = %x", x, data[x]);
+	    }
 
 		//  debugf("%s", data); //print received buffer
 		switch (Mode)
 		{
 		case ws_Connecting:
-			if (verifyKey(data, size) == true)
+			if (verifyKey((char*)data, size) == true)
 			{
 				Mode = ws_Connected;
 				this->connectedcallback(Mode);
@@ -442,84 +448,143 @@ err_t WebsocketClient::onReceive(pbuf* buf)
 			break;
 
 		case ws_Connected:
-			// Parsing received Websocket packet
-			uint8_t op = data[0] & 0b00001111; // Extracting Opcode
-			uint8_t fin = data[0] & 0b10000000; // Extracting Fin Bit (Single Frame)
-			// debugf("Opcode : 0x%x",op);
-			// debugf("Fin : 0x%x",fin);
-			if (op == 0x00 || op == 0x01 || op == 0x02) //Data
+			WebsocketFrameClass wsFrame;
+			do
 			{
-				if (fin > 0)
+				if (wsFrame.decodeFrame(data + wsFrame._nextReadOffset, size))
 				{
-					//  debugf("Single frame message");
-					char masked = data[1] & 0b10000000; // extracting Mask bit
-					uint16_t len = data[1] & 0b01111111; // length of data
-					uint16_t cnt = 2;
-					if (len == 126)
+					switch (wsFrame._frameType)
 					{
-						//next 2 bytes are length
-						len = data[cnt++];
-						len << 8;
-						len = len | data[cnt++];
-					}
-					if (len == 127)
+					case WSFrameType::text:
 					{
-						//next 8 bytes are length
-						debugf("64bit messenges not supported"); // Too big for Esp8266 to handle
-						return -1;
+						debugf("Got text frame");
+						String msg;
+						msg.setString((char*)wsFrame._payload, wsFrame._payloadLength);
+						this->rxcallback(msg.c_str()); //send data to callback function;
+						break;
 					}
-					// debugf("Message is %d chars long",len);
-
-					//Generally server replies are not masked, but RFC does not forbid it
-					if ( masked )
+					case WSFrameType::binary:
 					{
-						uint8_t mask[4];
-
-						mask[0] = data[cnt++];
-						mask[1] = data[cnt++];
-						mask[2] = data[cnt++];
-						mask[3] = data[cnt++];
-
-						for (uint8_t i = 0; i < len; i++)
-						{
-							data[cnt + i] = data[cnt + i] ^ mask[i % 4];
-						}
+						debugf("Got binary frame");
+						this->wsBinary(wsFrame._payload, wsFrame._payloadLength);
+						break;
 					}
-
-					if ( op == 0x01) //textFrame
+					case WSFrameType::close:
 					{
-						data[len] = '\0';
-						this->rxcallback((char*) &data[cnt]); //send data to callback function;
+						debugf("Got Disconnect request from server.\n");
+						//RFC requires we return a close op code before closing the connection
+						disconnect();
+						break;
 					}
-					if ( op == 0x02) //binaryFrame
+					case WSFrameType::ping:
 					{
-						this->wsBinary((uint8_t*) &data[cnt], len);
+						debugf("Got ping ...");
+						sendPong(); //Need to send Pong in response to Ping
+						break;
 					}
-				} //Currently this code does not handle fragmented messenges, since a single message can be 64bit long, only streaming binary data seems likely to need fragmentation.
-
+					case WSFrameType::pong:
+					{
+						debugf("Got pong ...");
+						//A pong can contain app data, but shouldnt if we didnt send any...
+						break;
+					}
+					case WSFrameType::error:
+					{
+						debugf("ERROR parsing frame!");
+						break;
+					}
+					case WSFrameType::incomplete:
+					{
+						debugf("INCOMPLETE websocket frame!");
+						break;
+					}
+					default:
+					{
+						debugf("Unknown frameType: %d", wsFrame._frameType);
+						break;
+					}
+					}
+				}
 			}
-			else if (op == 0x08)
-			{
-				debugf("Got Disconnect request from server.");
-				//RFC requires we return a close op code before closing the connection
-				disconnect();
-			}
-			else if (op == 0x09)
-			{
-				debugf("Got ping ...");
-				sendPong(); //Need to send Pong in response to Ping
-			}
-			else if (op == 0x10)
-			{
-				debugf("Got pong ...");
-				//A pong can contain app data, but shouldnt if we didnt send any...
-
-			}
-			else
-			{
-				debugf("Unknown opcode : %d ", op);
-				//Or not start of package if we failed to parse the entire previous one
-			}
+			while (wsFrame._nextReadOffset > 0);
+//			// Parsing received Websocket packet
+//			uint8_t op = data[0] & 0b00001111; // Extracting Opcode
+//			uint8_t fin = data[0] & 0b10000000; // Extracting Fin Bit (Single Frame)
+//			// debugf("Opcode : 0x%x",op);
+//			// debugf("Fin : 0x%x",fin);
+//			if (op == 0x00 || op == 0x01 || op == 0x02) //Data
+//			{
+//				if (fin > 0)
+//				{
+//					//  debugf("Single frame message");
+//					char masked = data[1] & 0b10000000; // extracting Mask bit
+//					uint16_t len = data[1] & 0b01111111; // length of data
+//					uint16_t cnt = 2;
+//					if (len == 126)
+//					{
+//						//next 2 bytes are length
+//						len = data[cnt++];
+//						len << 8;
+//						len = len | data[cnt++];
+//					}
+//					if (len == 127)
+//					{
+//						//next 8 bytes are length
+//						debugf("64bit messenges not supported"); // Too big for Esp8266 to handle
+//						return -1;
+//					}
+//					// debugf("Message is %d chars long",len);
+//
+//					//Generally server replies are not masked, but RFC does not forbid it
+//					if ( masked )
+//					{
+//						uint8_t mask[4];
+//
+//						mask[0] = data[cnt++];
+//						mask[1] = data[cnt++];
+//						mask[2] = data[cnt++];
+//						mask[3] = data[cnt++];
+//
+//						for (uint8_t i = 0; i < len; i++)
+//						{
+//							data[cnt + i] = data[cnt + i] ^ mask[i % 4];
+//						}
+//					}
+//
+//					if ( op == 0x01) //textFrame
+//					{
+//						data[len] = '\0';
+//						this->rxcallback((char*) &data[cnt]); //send data to callback function;
+//					}
+//					if ( op == 0x02) //binaryFrame
+//					{
+//						this->wsBinary((uint8_t*) &data[cnt], len);
+//					}
+//				} //Currently this code does not handle fragmented messenges, since a single message can be 64bit long, only streaming binary data seems likely to need fragmentation.
+//
+//			}
+//			else if (op == 0x08)
+//			{
+//				debugf("Got Disconnect request from server.");
+//				//RFC requires we return a close op code before closing the connection
+//				disconnect();
+//			}
+//			else if (op == 0x09)
+//			{
+//				debugf("Got ping ...");
+//				sendPong(); //Need to send Pong in response to Ping
+//			}
+//			else if (op == 0x10)
+//			{
+//				debugf("Got pong ...");
+//				//A pong can contain app data, but shouldnt if we didnt send any...
+//
+//			}
+//			else
+//			{
+//				debugf("Unknown opcode : %d ", op);
+//				//Or not start of package if we failed to parse the entire previous one
+//			}
 			break;
 		}
 
