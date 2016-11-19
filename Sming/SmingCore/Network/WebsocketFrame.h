@@ -29,7 +29,6 @@ namespace WSFlags
 {
     static const uint8_t payloadDeleteMemBit = 1u; //Delete memory reserved for payload in destructor
     static const uint8_t headerDeleteMemBit = 2u; //Delete memory reserved for header in destructor
-//    static const uint8_t multiframeBufBit = 4u; //Multiframe buffer was given to decodeFrame
 };
 
 class HttpServer;

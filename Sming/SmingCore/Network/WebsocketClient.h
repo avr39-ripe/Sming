@@ -22,8 +22,6 @@
 #include "../Digital.h"
 #include <Network/WebsocketFrame.h>
 
-#define WEBSOCKETS_USE_BIG_MEM
-#define WEBSOCKETS_MAX_HEADER_SIZE 14
 enum wsMode
 {
 	ws_Disconnected = 0, ws_Connecting, ws_Connected
