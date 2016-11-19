@@ -149,16 +149,12 @@ uint8_t WebsocketFrameClass::encodeFrame(WSFrameType opcode, uint8_t * payload, 
 	return true;
 }
 
-uint8_t WebsocketFrameClass::_getFrameSizes(uint8_t* buf, size_t length)
+uint8_t WebsocketFrameClass::_getFrameSizes(uint8_t* buffer, size_t length)
 {
-//	uint8_t* buffer = &buf[_nextReadOffset]; // if called again for multiframe buffer, rewind buffer first to next frame
-								// no effect for single frame buffer as initial value of _nextReadOffset = 0
-	uint8_t* buffer = buf;
-
-	for (uint8_t x = 0; x < length - _nextReadOffset; x++)
-	{
-		debugf("buffer[%d] = 0x%x", x, buffer[x]);
-	}
+//	for (uint8_t x = 0; x < length - _nextReadOffset; x++)
+//	{
+//		debugf("buffer[%d] = 0x%x", x, buffer[x]);
+//	}
 
 	uint16_t payloadLength = buffer[1] & 0b01111111; // length of payload
 	_mask = buffer[1] & 0b10000000; // extracting Mask bit
@@ -194,7 +190,7 @@ uint8_t WebsocketFrameClass::_getFrameSizes(uint8_t* buf, size_t length)
 	_payloadLength = payloadLength;
 
 	_nextReadOffset += _headerLength + _payloadLength; // if given buffer is multiframe buffer store read offset for next frame
-	debugf("_headerLength: %d, _payloadLength: %d, _nextReadOffset: %d length: %d",_headerLength, _payloadLength, _nextReadOffset,length);
+//	debugf("_headerLength: %d, _payloadLength: %d, _nextReadOffset: %d length: %d",_headerLength, _payloadLength, _nextReadOffset,length);
 
 	if (length == _nextReadOffset) // check if given buffer is single frame buffer
 	{
@@ -204,12 +200,10 @@ uint8_t WebsocketFrameClass::_getFrameSizes(uint8_t* buf, size_t length)
 	return true;
 }
 
-uint8_t WebsocketFrameClass::decodeFrame(uint8_t * buf, size_t length)
+uint8_t WebsocketFrameClass::decodeFrame(uint8_t * buffer, size_t length)
 {
-//	uint8_t* buffer = &buf[_nextReadOffset]; // if called again for multiframe buffer, rewind buffer first to next frame
+	buffer += _nextReadOffset; // if called again for multiframe buffer, rewind buffer first to next frame
 									// no effect for single frame buffer as initial value of _nextReadOffset = 0
-
-	uint8_t* buffer = buf;
 
 	uint8_t op = buffer[0] & 0b00001111; // Extracting Opcode
 	uint8_t fin = buffer[0] & 0b10000000; // Extracting Fin Bit (Single Frame)

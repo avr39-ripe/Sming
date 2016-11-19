@@ -33,7 +33,7 @@ namespace WSFlags
 {
     static const uint8_t payloadDeleteMemBit = 1u; //Delete memory reserved for payload in destructor
     static const uint8_t headerDeleteMemBit = 2u; //Delete memory reserved for header in destructor
-    static const uint8_t multiframeBufBit = 4u; //Multiframe buffer was given to decodeFrame
+//    static const uint8_t multiframeBufBit = 4u; //Multiframe buffer was given to decodeFrame
 };
 
 class HttpServer;
@@ -49,7 +49,7 @@ public:
 	WebsocketFrameClass();
 	virtual ~WebsocketFrameClass();
 	uint8_t encodeFrame(WSFrameType frameType, uint8_t * payload, size_t length, uint8_t mask, uint8_t fin,  uint8_t headerToPayload = true);
-	uint8_t decodeFrame(uint8_t * buf, size_t length);
+	uint8_t decodeFrame(uint8_t * buffer, size_t length);
 protected:
 	uint8_t* _payload = nullptr;
 	size_t _payloadLength = 0;
@@ -57,7 +57,7 @@ protected:
 	size_t _headerLength = 0;
 	WSFrameType _frameType = WSFrameType::empty;
 	uint8_t _mask = 0;
-	uint8_t _getFrameSizes(uint8_t* buf, size_t length);
+	uint8_t _getFrameSizes(uint8_t* buffer, size_t length);
 private:
 	uint8_t _flags = 0; //Store flags for further freeing memory
 	size_t _nextReadOffset = 0; //Store offset in multiframe tcp buffer for next decodeFrame

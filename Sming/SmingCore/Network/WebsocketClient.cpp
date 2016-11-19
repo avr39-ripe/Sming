@@ -424,10 +424,10 @@ err_t WebsocketClient::onReceive(pbuf* buf)
 		pbuf_copy_partial(buf, data, size, 0);
 
 //		data[size] = '\0';
-	    for (uint8_t x = 0; x < size; x++)
-	    {
-	    	debugf("ws recv data[%d] = %x", x, data[x]);
-	    }
+//	    for (uint8_t x = 0; x < size; x++)
+//	    {
+//	    	debugf("ws recv data[%d] = %x", x, data[x]);
+//	    }
 
 		//  debugf("%s", data); //print received buffer
 		switch (Mode)
@@ -451,13 +451,13 @@ err_t WebsocketClient::onReceive(pbuf* buf)
 			WebsocketFrameClass wsFrame;
 			do
 			{
-				if (wsFrame.decodeFrame(data + wsFrame._nextReadOffset, size))
+				if (wsFrame.decodeFrame(data, size))
 				{
 					switch (wsFrame._frameType)
 					{
 					case WSFrameType::text:
 					{
-						debugf("Got text frame");
+//						debugf("Got text frame");
 						String msg;
 						msg.setString((char*)wsFrame._payload, wsFrame._payloadLength);
 						this->rxcallback(msg.c_str()); //send data to callback function;
@@ -465,7 +465,7 @@ err_t WebsocketClient::onReceive(pbuf* buf)
 					}
 					case WSFrameType::binary:
 					{
-						debugf("Got binary frame");
+//						debugf("Got binary frame");
 						this->wsBinary(wsFrame._payload, wsFrame._payloadLength);
 						break;
 					}
