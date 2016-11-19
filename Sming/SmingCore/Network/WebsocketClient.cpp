@@ -14,10 +14,7 @@
 WebsocketClient::WebsocketClient(bool autoDestruct /*= false*/) :
 		TcpClient(autoDestruct)
 {
-	this->Mode = ws_Disconnected;
-	this->rxcallback = NULL;
-	this->completecallback = NULL;
-	this->connectedcallback = NULL;
+
 }
 
 WebsocketClient::~WebsocketClient()
@@ -26,36 +23,25 @@ WebsocketClient::~WebsocketClient()
 }
 
 
-/* Function Name: setOnReceiveCallback
- * Description: This function is used to set Receive callback function
- * Parameters: Callback function like wsMessageReceived(String message)
- */
-void WebsocketClient::setOnReceiveCallback(WebSocketRxCallback _rxcallback)
+void WebsocketClient::setWebSocketMessageHandler(WebSocketClientMessageDelegate handler)
 {
-    this->rxcallback = _rxcallback;
+	wsMessage = handler;
 }
 
 void WebsocketClient::setWebSocketBinaryHandler(WebSocketClientBinaryDelegate handler)
 {
 	wsBinary = handler;
 }
-/* Function Name: setOnDisconnectedCallback
- * Description: This function is used to set Disconnected callback function
- * Parameters: Callback function like  wsDisconnected(bool success)
- */
-void WebsocketClient::setOnDisconnectedCallback(WebSocketCompleteCallback _completecallback)
+
+void WebsocketClient::setWebSocketDisconnectedHandler(WebSocketClientDisconnectDelegate handler)
 {
-	this->completecallback =_completecallback;
+	wsDisconnect = handler;
 }
 
 
-/* Function Name: setOnConnectedCallback
- * Description: This function is used to set Connected callback function
- * Parameters: Callback function like connectedCallback(wsMode  Mode)
- */
-void WebsocketClient::setOnConnectedCallback(WebSocketConnectedCallback _connectedcallback)
+void WebsocketClient::setWebSocketConnectedHandler(WebSocketClientConnectedDelegate handler)
 {
-	this->connectedcallback = _connectedcallback;
+	wsConnect = handler;
 }
 
 
@@ -205,12 +191,18 @@ void WebsocketClient::onFinished(TcpClientState finishState)
 	{
 		//  restart();
 		debugf("Tcp Client failure...");
-		this->completecallback(false);
+		if (wsDisconnect)
+		{
+			wsDisconnect(*this, false);
+		}
 	}
 	else
 	{
 		debugf("Websocket Closed Normally.");
-		this->completecallback(true);
+		if (wsDisconnect)
+		{
+			wsDisconnect(*this, true);
+		}
 	}
 	TcpClient::onFinished(finishState);
 }
@@ -335,12 +327,6 @@ void WebsocketClient::sendMessage(char* msg, uint16_t length)
 	send((char*) buffer, i, false);
 }
 
-/* Function Name: sendBinary
- * Description: Send Binary message to Websocket Server
- *              Max length of message permitted is 0xffff (65535) bytes
- * Parameters: msg - Message int8 array 
- *             length - length of msg  array
- */
 void WebsocketClient::sendBinary(uint8_t* msg, uint16_t length)
 {
 	WebsocketFrameClass wsFrame;
@@ -436,14 +422,17 @@ err_t WebsocketClient::onReceive(pbuf* buf)
 			if (verifyKey((char*)data, size) == true)
 			{
 				Mode = ws_Connected;
-				this->connectedcallback(Mode);
 				//   debugf("Key Verified. Websocket Handshake completed");
 				sendPing();
 			}
 			else
 			{
 				Mode = ws_Disconnected; // Handshake was not proper.
-				this->connectedcallback(Mode);
+			}
+
+			if (wsConnect)
+			{
+				wsConnect(*this, Mode);
 			}
 			break;
 
@@ -460,13 +449,19 @@ err_t WebsocketClient::onReceive(pbuf* buf)
 //						debugf("Got text frame");
 						String msg;
 						msg.setString((char*)wsFrame._payload, wsFrame._payloadLength);
-						this->rxcallback(msg.c_str()); //send data to callback function;
+						if (wsMessage)
+						{
+							wsMessage(*this, msg.c_str());
+						}
 						break;
 					}
 					case WSFrameType::binary:
 					{
 //						debugf("Got binary frame");
-						this->wsBinary(wsFrame._payload, wsFrame._payloadLength);
+						if (wsBinary)
+						{
+							wsBinary(*this, wsFrame._payload, wsFrame._payloadLength);
+						}
 						break;
 					}
 					case WSFrameType::close:

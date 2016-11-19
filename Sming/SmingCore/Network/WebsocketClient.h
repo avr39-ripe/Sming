@@ -22,15 +22,17 @@
 #include "../Digital.h"
 #include <Network/WebsocketFrame.h>
 
+class WebsocketClient;
+
 enum wsMode
 {
 	ws_Disconnected = 0, ws_Connecting, ws_Connected
 };
 
-typedef Delegate<void(String message)> WebSocketRxCallback;
-typedef Delegate<void(uint8_t* data, size_t size)> WebSocketClientBinaryDelegate;
-typedef Delegate<void(bool  successful)> WebSocketCompleteCallback;
-typedef Delegate<void(wsMode  Mode)> WebSocketConnectedCallback;
+typedef Delegate<void(WebsocketClient& wsClient, const String message)> WebSocketClientMessageDelegate;
+typedef Delegate<void(WebsocketClient& wsClient, uint8_t* data, size_t size)> WebSocketClientBinaryDelegate;
+typedef Delegate<void(WebsocketClient& wsClient, bool  successful)> WebSocketClientDisconnectDelegate;
+typedef Delegate<void(WebsocketClient& wsClient, wsMode  Mode)> WebSocketClientConnectedDelegate;
 class WebsocketClient;
 
 class WebsocketClient: protected TcpClient
@@ -39,11 +41,11 @@ public:
 	//  TcpClient wsClient(wsOnCompleted, wsOnReceive);
 	WebsocketClient(bool autoDestruct = false); //
 	virtual ~WebsocketClient();
-	void setOnReceiveCallback(WebSocketRxCallback _rxcallback);
-	void setOnDisconnectedCallback(WebSocketCompleteCallback _completecallback);
-	void setOnConnectedCallback(WebSocketConnectedCallback _connectedcallback);
+	void setWebSocketMessageHandler(WebSocketClientMessageDelegate handler);
+	void setWebSocketDisconnectedHandler(WebSocketClientDisconnectDelegate handler);
+	void setWebSocketConnectedHandler(WebSocketClientConnectedDelegate handler);
 	void setWebSocketBinaryHandler(WebSocketClientBinaryDelegate handler);
-	bool connect(String url);//, WebSocketRxCallback _rxcallback = NULL, WebSocketCompleteCallback _completecallback = NULL);
+	bool connect(String url);
 	void sendPing();
 	void sendPong();
 	void disconnect();
@@ -61,12 +63,12 @@ private:
 
 	URL uri;
 	String _url;
-	wsMode Mode;
-	WebSocketRxCallback rxcallback;
-	WebSocketClientBinaryDelegate wsBinary;
-	WebSocketCompleteCallback completecallback;
-	WebSocketConnectedCallback connectedcallback;
-	bool connected;
+	wsMode Mode = ws_Disconnected;
+	WebSocketClientMessageDelegate wsMessage = nullptr;
+	WebSocketClientBinaryDelegate wsBinary = nullptr;
+	WebSocketClientDisconnectDelegate wsDisconnect = nullptr;
+	WebSocketClientConnectedDelegate wsConnect = nullptr;
+	bool connected = false;
 	String key;
 };
 
