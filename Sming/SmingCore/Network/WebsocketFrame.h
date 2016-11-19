@@ -9,10 +9,6 @@
 #define SMINGCORE_NETWORK_WEBSOCKETFRAME_H_
 #include "../Wiring/WiringFrameworkIncludes.h"
 
-namespace WSFrame
-{
-	static uint8_t MaxHeaderLength = 14;
-}
 
 enum class WSFrameType : uint8_t
 {
