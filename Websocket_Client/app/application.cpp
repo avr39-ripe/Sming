@@ -25,10 +25,10 @@ Timer restartTimer;
 int msg_cnt =0;
 
 //String ws_Url =  "ws://echo.websocket.org"; //"ws://192.168.1.2:8080/";
-String ws_Url =  "ws://10.2.113.116"; //"ws://192.168.1.2:8080/";
-void wsDisconnected(bool success);
+String ws_Url =  "ws://192.168.31.155"; //"ws://192.168.1.2:8080/";
+void wsDisconnected(WebsocketClient& wsClient, bool success);
 void wsMessageSent();
-void wsConnected(wsMode Mode)
+void wsConnected(WebsocketClient& wsClient,wsMode Mode)
 {
 	if (Mode == ws_Connected)
 	{
@@ -41,18 +41,18 @@ void wsConnected(wsMode Mode)
 		wsClient.connect(ws_Url);
 	}
 }
-void wsMessageReceived(String message)
+void wsMessageReceived(WebsocketClient& wsClient, String message)
 {
     Serial.printf("WebSocket message received:\r\n%s\r\n", message.c_str());
 }
 
-void wsBinReceived(uint8_t* data, size_t size)
+void wsBinReceived(WebsocketClient& wsClient, uint8_t* data, size_t size)
 {
 	Serial.printf("WebSocket BINARY received\n");
-	for (uint8_t i = 0; i< size; i++)
-	{
-		Serial.printf("wsBin[%u] = %x\n", i, data[i]);
-	}
+//	for (uint8_t i = 0; i< size; i++)
+//	{
+//		Serial.printf("wsBin[%u] = %x\n", i, data[i]);
+//	}
 
 	Serial.printf("wsCmd: %x wsSysId: %x wsSubCmd: %x\n",data[0], data[1], data[2]);
 
@@ -77,7 +77,7 @@ void restart()
 	 msgTimer.setIntervalMs(1*1000);
 	 msgTimer.start();
 }
-void wsDisconnected(bool success)
+void wsDisconnected(WebsocketClient& wsClient, bool success)
 {
 	if (success == true)
 	{
@@ -124,10 +124,10 @@ void connectOk()
     Serial.println("I'm CONNECTED to WiFi");
     Serial.print("Connecting to Websocket Server");
     Serial.println(ws_Url);
-    wsClient.setOnReceiveCallback(wsMessageReceived);
+    wsClient.setWebSocketMessageHandler(wsMessageReceived);
     wsClient.setWebSocketBinaryHandler(wsBinReceived);
-    wsClient.setOnDisconnectedCallback(wsDisconnected);
-    wsClient.setOnConnectedCallback(wsConnected);
+    wsClient.setWebSocketDisconnectedHandler(wsDisconnected);
+    wsClient.setWebSocketConnectedHandler(wsConnected);
     wsClient.connect(ws_Url);
     
 }
