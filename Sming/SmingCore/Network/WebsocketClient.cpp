@@ -1,11 +1,12 @@
 /* 
  * File:   WebsocketClient.cpp
- * Author: https://github.com/hrsavla
+ * Original Author: https://github.com/hrsavla
  *
  * Created on August 4, 2015, 1:37 PM
- * This Websocket Client library is ported by me into Sming from  
+ * This Websocket Client library is ported by hrsavla into Sming from
  * https://github.com/MORA99/Stokerbot/tree/master/Libraries/WebSocketClient 
  * 
+ * Refactor and improve by https://github.com/avr39-ripe - Alexander V, Ribchansky
  * 
  */
 
@@ -16,12 +17,6 @@ WebsocketClient::WebsocketClient(bool autoDestruct /*= false*/) :
 {
 
 }
-
-WebsocketClient::~WebsocketClient()
-{
-
-}
-
 
 void WebsocketClient::setWebSocketMessageHandler(WebSocketClientMessageDelegate handler)
 {
@@ -44,17 +39,6 @@ void WebsocketClient::setWebSocketConnectedHandler(WebSocketClientConnectedDeleg
 	wsConnect = handler;
 }
 
-
-
-/* Function Name: connect
- * Description: This function is called to start Websocket Client connection to Server
- * Parameters: url  - Url of server in String like echo.websocket.org
- * 			  WebsocketRxCallback  - Callback function for recieved messages like wsMessageReceived(String message)
- * 			  WebSocketCompleteCallback - Callback function which lets user know
- * 			  							websocket client connection is closed.
- * 			  							eg. wsDisconnected(bool success)
- *
- */
 bool WebsocketClient::connect(String url)
 {
 	this->uri = URL(url);
@@ -106,41 +90,6 @@ bool WebsocketClient::connect(String url)
 
 }
 
-/* Function Name: onConnected
- * Description: This function is called when Websocket Client is Connected to Server
- * Parameters: err - err_t state
- * 			if err = ERR_OK (0) then connection is successful. You can then send data.
- */
-err_t WebsocketClient::onConnected(err_t err)
-{
-	if (err == ERR_OK)
-	{
-		//Mode = ws_Connecting;
-		//	debugf("***OnConnected CALLED**** - %d", err); // No longer needed
-
-	}
-
-	TcpClient::onConnected(err);
-}
-
-/* Function Name: onError
- * Description: This function is called when Websocket Client is Connected to Server
- * Parameters: err - err_t state
- * 			Standard error codes and their meaning#define
- * 			ERR_OK          0    No error, everything OK.
- * 			ERR_MEM        -1    Out of memory error.
- *    		ERR_BUF        -2    Buffer error.
- * 			ERR_TIMEOUT    -3    Timeout.
- *  		ERR_RTE        -4    Routing problem.
- *			ERR_INPROGRESS -5    Operation in progress
- *			ERR_VAL        -6    Illegal value.
- *			ERR_WOULDBLOCK -7    Operation would block.
- *			ERR_ABRT       -8    Connection aborted.       ***Common Cause
- *			ERR_RST        -9    Connection reset.        *** Common Cause
- *			ERR_CLSD       -10   Connection closed.
- *			ERR_CONN       -11   Not connected.
- *
- */
 void WebsocketClient::onError(err_t err)
 {
 
@@ -157,11 +106,6 @@ void WebsocketClient::onError(err_t err)
 
 }
 
-/* Function Name: verifyKey
- * Description: It verifies Encrypted key sent by server
- * Parameters: buf  -  buffer received 
- *             size - size of buffer             
- */
 bool WebsocketClient::verifyKey(char* buf, int size)
 {
 	String dd = String(buf);
@@ -180,10 +124,6 @@ bool WebsocketClient::verifyKey(char* buf, int size)
 	return serverKey.equals(String(secure)); //b64Result
 }
 
-/* Function Name: onFinished
- * Description: This function is called when Websocket Client is Closed
- * Parameters: finishState - State of client             
- */
 void WebsocketClient::onFinished(TcpClientState finishState)
 {
 	Mode = ws_Disconnected;
@@ -207,13 +147,6 @@ void WebsocketClient::onFinished(TcpClientState finishState)
 	TcpClient::onFinished(finishState);
 }
 
-
-
-/* Function Name: sendPing
- * Description: Sending Ping packet to verify Server is connected
- * 				Ping can also be send to keep connection alive.
- * Parameters:       
- */
 void WebsocketClient::sendPing()
 {
 	uint8_t buf[2] =
@@ -222,10 +155,6 @@ void WebsocketClient::sendPing()
 	send((char*) buf, 2, false);
 }
 
-/* Function Name: sendPong
- * Description: Pong is send in response to Ping sent by Server
- * Parameters:       
- */
 void WebsocketClient::sendPong()
 {
 	uint8_t buf[2] =
@@ -234,10 +163,6 @@ void WebsocketClient::sendPong()
 	send((char*) buf, 2, false);
 }
 
-/* Function Name: disconnect
- * Description: Close Websocket Client cleanly.
- * Parameters:       
- */
 void WebsocketClient::disconnect()
 {
 	debugf("Terminating Websocket connection.");
@@ -246,154 +171,38 @@ void WebsocketClient::disconnect()
 	uint8_t buf[2] =
 	{ 0x87, 0x00 };
 	send((char*) buf, 2, true);
-	//TcpClient::flush();
-	//TcpClient::close();
 }
 
-
-/* Function Name: sendMessage
- * Description: Send Text message to Websocket Server
- *              Max length of message permitted is 0xffff (65535) bytes
- * Parameters: msg - Message char array 
- *             length - length of msg char array
- */
-void WebsocketClient::sendMessage(char* msg, uint16_t length)
-{
-	/*
-	 +-+-+-+-+-------+-+-------------+-------------------------------+
-	 0                   1                   2                   3
-	 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-	 +-+-+-+-+-------+-+-------------+-------------------------------+
-	 |F|R|R|R| opcode|M| Payload len |    Extended payload length    |
-	 |I|S|S|S|  (4)  |A|     (7)     |             (16/64)           |
-	 |N|V|V|V|       |S|             |   (if payload len==126/127)   |
-	 | |1|2|3|       |K|             |                               |
-	 +-+-+-+-+-------+-+-------------+ - - - - - - - - - - - - - - - +
-	 |     Extended payload length continued, if payload len == 127  |
-	 + - - - - - - - - - - - - - - - +-------------------------------+
-	 |                               | Masking-key, if MASK set to 1 |
-	 +-------------------------------+-------------------------------+
-	 | Masking-key (continued)       |          Payload Data         |
-	 +-------------------------------- - - - - - - - - - - - - - - - +
-	 :                     Payload Data continued ...                :
-	 + - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - +
-	 |                     Payload Data continued ...                |
-	 +---------------------------------------------------------------+
-
-	 Opcodes
-	 0x00: this frame continues the payload from the last.
-	 0x01: this frame includes utf-8 text data.
-	 0x02: this frame includes binary data.
-	 0x08: this frame terminates the connection.
-	 0x09: this frame is a ping.
-	 0x0A: this frame is a pong.
-	 */
-	uint8_t buffer[500];
-	uint8_t i = 0;
-	buffer[i++] = 0x80 | 0x01; //FINN = 1 and Sending Text Data
-
-	/*
-	 payload_len (7 bits): the length of the payload.
-
-	 0-125 mean the payload is that long.
-	 126 means that the following two bytes indicate the length.
-	 127 means the next 8 bytes indicate the length.
-
-	 So it comes in ~7bit, 16bit and 64bit.
-	 */
-
-	if (length <= 125)
-	{
-		buffer[i++] = 0x80 | length; //Setting MASK bit and length
-	}
-	else
-	{
-		buffer[i++] = 0xFE; // Mask bit + 126
-		buffer[i++] = (uint8_t) (length >> 8);
-		buffer[i++] = (uint8_t) (length & 0xFF);
-	}
-	//64bit outgoing messenges not supported
-
-	byte mask[4];
-	for (uint8_t j = 0; j < 4; j++)
-	{
-		mask[j] = random(0, 255);
-		buffer[i++] = mask[j];
-	}
-	for (uint16_t j = 0; j < length; j++)
-	{
-		buffer[i++] = (msg[j] ^ mask[j % 4]);
-	}
-	send((char*) buffer, i, false);
-}
-
-void WebsocketClient::sendBinary(uint8_t* msg, uint16_t length)
+void WebsocketClient::sendFrame(WSFrameType frameType, uint8_t* msg, uint16_t length)
 {
 	WebsocketFrameClass wsFrame;
-	uint8_t result = wsFrame.encodeFrame(WSFrameType::binary, msg, length, true, true, true);
+	uint8_t result = wsFrame.encodeFrame(frameType, msg, length, true, true, true);
 
 	if (result && wsFrame._header == nullptr)
 	{
-		debugf("Sending wsFrame as a _payload");
-//		for (uint8_t x = 0; x < wsFrame._payloadLength; x++)
-//		{
-//			debugf("_payload[%d] = %x\n", x, wsFrame._payload[x]);
-//		}
-
 		send((char*) &wsFrame._payload[0], wsFrame._payloadLength, false);
 	}
 	else if (result)
 	{
-		debugf("Sending wsFrame as a _header and then _payload");
-//	    for (uint8_t x = 0; x < wsFrame._headerLength; x++)
-//	    {
-//	    	debugf("_header[%d] = %x\n", x, wsFrame._header[x]);
-//	    }
 		send((char*) &wsFrame._header[0], wsFrame._headerLength, false);
-
-//	    for (uint8_t x = 0; x < wsFrame._payloadLength; x++)
-//	    {
-//	    	debugf("_payload[%d] = %x\n", x, wsFrame._payload[x]);
-//	    }
 		send((char*) &wsFrame._payload[0], wsFrame._payloadLength, false);
-
 	}
-	return;
-
-	uint8_t buffer[500];
-	uint8_t i = 0;
-	buffer[i++] = 0x80 | 0x02; //FINN = 1 and Sending Binary Data
-
-	if (length <= 125)
-	{
-		buffer[i++] = 0x80 | length; //Setting MASK bit and length
-	}
-	else
-	{
-		buffer[i++] = 0xFE; // Mask bit + 126
-		buffer[i++] = (uint8_t) (length >> 8);
-		buffer[i++] = (uint8_t) (length & 0xFF);
-	}
-	//64bit outgoing messenges not supported
-
-	byte mask[4];
-	for (uint8_t j = 0; j < 4; j++)
-	{
-		mask[j] = random(0, 255);
-		buffer[i++] = mask[j];
-	}
-	for (uint16_t j = 0; j < length; j++)
-	{
-		buffer[i++] = (msg[j] ^ mask[j % 4]);
-	}
-	send((char*) buffer, i, false); // Need support from TcpClient to send binary
+}
+void WebsocketClient::sendBinary(uint8_t* msg, uint16_t length)
+{
+	sendFrame(WSFrameType::binary, msg, length);
 }
 
-/* Function Name: onReceive
- * Description: It process message sent byWebsocket Server
- *              Max length of message permitted is 0xffff (65535) bytes
- * Parameters: buf - pbuf array 
- */
+void WebsocketClient::sendMessage(char* msg, uint16_t length)
+{
+	sendFrame(WSFrameType::text, (uint8_t*) msg, length);
+}
+
+void WebsocketClient::sendMessage(String str)
+{
+	sendFrame(WSFrameType::text, (uint8_t*) str.c_str(), str.length() + 1);
+}
+
 err_t WebsocketClient::onReceive(pbuf* buf)
 {
 	if (buf == NULL)
@@ -404,18 +213,10 @@ err_t WebsocketClient::onReceive(pbuf* buf)
 	else
 	{
 		uint16_t size = buf->tot_len;
-//		char* data = new char[size + 1];
 		uint8_t* data = new uint8_t[size];
 
 		pbuf_copy_partial(buf, data, size, 0);
 
-//		data[size] = '\0';
-//	    for (uint8_t x = 0; x < size; x++)
-//	    {
-//	    	debugf("ws recv data[%d] = %x", x, data[x]);
-//	    }
-
-		//  debugf("%s", data); //print received buffer
 		switch (Mode)
 		{
 		case ws_Connecting:
@@ -502,84 +303,7 @@ err_t WebsocketClient::onReceive(pbuf* buf)
 				}
 			}
 			while (wsFrame._nextReadOffset > 0);
-//			// Parsing received Websocket packet
-//			uint8_t op = data[0] & 0b00001111; // Extracting Opcode
-//			uint8_t fin = data[0] & 0b10000000; // Extracting Fin Bit (Single Frame)
-//			// debugf("Opcode : 0x%x",op);
-//			// debugf("Fin : 0x%x",fin);
-//			if (op == 0x00 || op == 0x01 || op == 0x02) //Data
-//			{
-//				if (fin > 0)
-//				{
-//					//  debugf("Single frame message");
-//					char masked = data[1] & 0b10000000; // extracting Mask bit
-//					uint16_t len = data[1] & 0b01111111; // length of data
-//					uint16_t cnt = 2;
-//					if (len == 126)
-//					{
-//						//next 2 bytes are length
-//						len = data[cnt++];
-//						len << 8;
-//						len = len | data[cnt++];
-//					}
-//					if (len == 127)
-//					{
-//						//next 8 bytes are length
-//						debugf("64bit messenges not supported"); // Too big for Esp8266 to handle
-//						return -1;
-//					}
-//					// debugf("Message is %d chars long",len);
-//
-//					//Generally server replies are not masked, but RFC does not forbid it
-//					if ( masked )
-//					{
-//						uint8_t mask[4];
-//
-//						mask[0] = data[cnt++];
-//						mask[1] = data[cnt++];
-//						mask[2] = data[cnt++];
-//						mask[3] = data[cnt++];
-//
-//						for (uint8_t i = 0; i < len; i++)
-//						{
-//							data[cnt + i] = data[cnt + i] ^ mask[i % 4];
-//						}
-//					}
-//
-//					if ( op == 0x01) //textFrame
-//					{
-//						data[len] = '\0';
-//						this->rxcallback((char*) &data[cnt]); //send data to callback function;
-//					}
-//					if ( op == 0x02) //binaryFrame
-//					{
-//						this->wsBinary((uint8_t*) &data[cnt], len);
-//					}
-//				} //Currently this code does not handle fragmented messenges, since a single message can be 64bit long, only streaming binary data seems likely to need fragmentation.
-//
-//			}
-//			else if (op == 0x08)
-//			{
-//				debugf("Got Disconnect request from server.");
-//				//RFC requires we return a close op code before closing the connection
-//				disconnect();
-//			}
-//			else if (op == 0x09)
-//			{
-//				debugf("Got ping ...");
-//				sendPong(); //Need to send Pong in response to Ping
-//			}
-//			else if (op == 0x10)
-//			{
-//				debugf("Got pong ...");
-//				//A pong can contain app data, but shouldnt if we didnt send any...
-//
-//			}
-//			else
-//			{
-//				debugf("Unknown opcode : %d ", op);
-//				//Or not start of package if we failed to parse the entire previous one
-//			}
+
 			break;
 		}
 
@@ -588,26 +312,6 @@ err_t WebsocketClient::onReceive(pbuf* buf)
 	}
 }
 
-/* Function Name: sendMessage
- * Description: Send Text Stringmessage to Websocket Server
- *              Max length of message permitted is 0xffff (65535) bytes
- * Parameters: Str - String to be sent to websocket server
- */
-void WebsocketClient::sendMessage(String str)
-{
-	uint16_t size = str.length() + 1;
-	char cstr[size];
-
-	str.toCharArray(cstr, size);
-	sendMessage(cstr, size);
-}
-/* Function Name: getWSMode
- * Description: Gets present Mode of Websocet client
- *              ws_Disconnected = 0  (Websocket Client is disconnected)
- *              ws_Connecting =1 (Websocket Client is connected Server)
- *              ws_Connected = 2 (Websocket is connected to server and can send
- *                                 and receive messages.)
- */
 wsMode WebsocketClient::getWSMode()
 {
 	return Mode;

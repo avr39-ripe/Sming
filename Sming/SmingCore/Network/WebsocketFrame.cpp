@@ -1,8 +1,11 @@
 /*
- * WebsocketFrame.cpp
+ * WebsocketFrame.h
  *
- *  Created on: 13 нояб. 2016 г.
- *      Author: shurik
+ *  Created on: 13 nov. 2016 г.
+ *  Author: https://github.com/avr39-ripe - Alexander V, Ribchansky
+ *
+ *  Some parts of code inspired by: https://github.com/Links2004/arduinoWebSockets and
+ *  https://github.com/m8rge/cwebsocket
  */
 
 #include <Network/WebsocketFrame.h>
