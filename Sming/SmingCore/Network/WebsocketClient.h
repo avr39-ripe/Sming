@@ -3,9 +3,10 @@
  * Author: https://github.com/hrsavla
  *
  * Created on August 4, 2015, 1:37 PM
- * This Websocket Client library is ported by me into Sming from  
+ * This Websocket Client library is ported by hrsavla into Sming from
  * https://github.com/MORA99/Stokerbot/tree/master/Libraries/WebSocketClient 
  * 
+ * Refactor and improve by https://github.com/avr39-ripe - Alexander V, Ribchansky
  * 
  */
 
@@ -40,7 +41,7 @@ class WebsocketClient: protected TcpClient
 public:
 	//  TcpClient wsClient(wsOnCompleted, wsOnReceive);
 	WebsocketClient(bool autoDestruct = false); //
-	virtual ~WebsocketClient();
+	virtual ~WebsocketClient() {};
 	void setWebSocketMessageHandler(WebSocketClientMessageDelegate handler);
 	void setWebSocketDisconnectedHandler(WebSocketClientDisconnectDelegate handler);
 	void setWebSocketConnectedHandler(WebSocketClientConnectedDelegate handler);
@@ -52,10 +53,10 @@ public:
 	void sendMessage(char* msg, uint16_t length);
 	void sendMessage(String str);
 	void sendBinary(uint8_t* msg, uint16_t length);
+	void sendFrame(WSFrameType frameType, uint8_t* msg, uint16_t length);
 	wsMode getWSMode();
 protected:
 	virtual void onFinished(TcpClientState finishState);
-	virtual err_t onConnected(err_t err);
 	virtual void onError(err_t err);
 	virtual err_t onReceive(pbuf *buf);
 	bool verifyKey(char *buf, int size);
