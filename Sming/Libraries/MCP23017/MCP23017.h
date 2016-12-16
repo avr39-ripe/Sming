@@ -40,6 +40,11 @@ public:
   uint8_t getLastInterruptPin();
   uint8_t getLastInterruptPinValue();
 
+  void wordWrite(uint8_t, uint16_t); // Typically only used internally, but allows the user to write any register pair if needed, so it's public
+  void pinMode(uint16_t); // Sets the mode (input or output) of all I/O pins at once
+  void pullupMode(uint16_t); // Selects internal 100k input pull-up of all I/O pins at once
+  void digitalWrite(uint16_t); // Sets all output pins at once. If some pins are configured as input, those bits will be ignored on write
+
  private:
   uint8_t i2caddr;
 
