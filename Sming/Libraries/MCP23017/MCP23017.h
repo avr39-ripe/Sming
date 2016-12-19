@@ -23,6 +23,8 @@
 
 class MCP23017 {
 public:
+//	MCP23017 (){};
+//	MCP23017 (uint8_t addr) :i2caddr(addr) {};
   void begin(uint8_t addr);
   void begin(void);
 
@@ -46,7 +48,7 @@ public:
   void digitalWrite(uint16_t); // Sets all output pins at once. If some pins are configured as input, those bits will be ignored on write
 
  private:
-  uint8_t i2caddr;
+  uint8_t i2caddr = 0;
 
   uint8_t bitForPin(uint8_t pin);
   uint8_t regForPin(uint8_t pin, uint8_t portAaddr, uint8_t portBaddr);

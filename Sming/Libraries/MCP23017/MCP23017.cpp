@@ -128,7 +128,7 @@ void MCP23017::begin(uint8_t addr) {
  * Initializes the default MCP23017, with 000 for the configurable part of the address
  */
 void MCP23017::begin(void) {
-	begin(0);
+	begin(i2caddr);
 }
 
 /**
