@@ -23,6 +23,8 @@
 
 class MCP23017 {
 public:
+//	MCP23017 (){};
+//	MCP23017 (uint8_t addr) :i2caddr(addr) {};
   void begin(uint8_t addr);
   void begin(void);
 
@@ -40,14 +42,20 @@ public:
   uint8_t getLastInterruptPin();
   uint8_t getLastInterruptPinValue();
 
+  void wordWrite(uint8_t, uint16_t); // Typically only used internally, but allows the user to write any register pair if needed, so it's public
+  void pinMode(uint16_t); // Sets the mode (input or output) of all I/O pins at once
+  void pullupMode(uint16_t); // Selects internal 100k input pull-up of all I/O pins at once
+  void digitalWrite(uint16_t); // Sets all output pins at once. If some pins are configured as input, those bits will be ignored on write
+  uint8_t readRegister(uint8_t addr);
+  void writeRegister(uint8_t addr, uint8_t value);
+
  private:
-  uint8_t i2caddr;
+  uint8_t i2caddr = 0;
 
   uint8_t bitForPin(uint8_t pin);
   uint8_t regForPin(uint8_t pin, uint8_t portAaddr, uint8_t portBaddr);
 
-  uint8_t readRegister(uint8_t addr);
-  void writeRegister(uint8_t addr, uint8_t value);
+
 
   /**
    * Utility private method to update a register associated with a pin (whether port A/B)

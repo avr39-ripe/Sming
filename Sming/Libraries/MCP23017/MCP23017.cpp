@@ -128,7 +128,7 @@ void MCP23017::begin(uint8_t addr) {
  * Initializes the default MCP23017, with 000 for the configurable part of the address
  */
 void MCP23017::begin(void) {
-	begin(0);
+	begin(i2caddr);
 }
 
 /**
@@ -289,3 +289,31 @@ uint8_t MCP23017::getLastInterruptPinValue(){
 }
 
 
+// GENERIC WORD WRITE - will write a word to a register pair, LSB to first register, MSB to next higher value register
+
+void MCP23017::wordWrite(uint8_t reg, uint16_t word)
+{  // Accept the start register and word
+	Wire.beginTransmission(MCP23017_ADDRESS | i2caddr);
+	wiresend(reg);
+	wiresend(word & 0xFF);
+	wiresend(word >> 8);
+	Wire.endTransmission();
+}
+
+void MCP23017::pinMode(uint16_t mode)
+{    // Accept the word
+	wordWrite(MCP23017_IODIRA, mode); // Call the the generic word writer with start register and the mode cache
+//	_modeCache = mode;
+}
+
+void MCP23017::pullupMode(uint16_t mode)
+{
+	wordWrite(MCP23017_GPPUA, mode);
+//	_pullupCache = mode;
+}
+
+void MCP23017::digitalWrite(uint16_t value)
+{
+	wordWrite(MCP23017_GPIOA, value);
+//	_outputCache = value;
+}
